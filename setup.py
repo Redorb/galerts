@@ -19,7 +19,7 @@ decide to publish one, galerts will switch to using it.
 Using galerts should be pretty straightforward. Check out the README and the
 module itself for documentation.
 
-Please find `galerts on github <http://github.com/jab/galerts>`_ if you would
+Please find `galerts on github <https://github.com/Redorb/galerts>`_ if you would
 like to collaborate.
 """
 
@@ -28,8 +28,8 @@ setup(
     version=version,
     author='Josh Bronson',
     author_email='jabronson@gmail.com',
-    maintainer='Peter Sanchez',
-    maintainer_email='patersanchez@gmail.com',
+    maintainer='Kenan Warren',
+    maintainer_email='redorb1790@gmail.com',
     description="Python libary for managing Google Alerts",
     long_description=long_description,
     keywords='google, alerts, google alerts, news',
@@ -44,6 +44,6 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
         ],
     install_requires=[
-        "BeautifulSoup",
+        "lxml",
         ],
     )
