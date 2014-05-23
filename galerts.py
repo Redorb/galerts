@@ -22,11 +22,9 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 import re
-import urllib2
+from urllib import parse, request
 import lxml.html
 from getpass import getpass
-from urllib import urlencode
-
 
 # {{{ these values must match those used in the Google Alerts web interface:
 
@@ -113,7 +111,7 @@ def safe_urlencode(params):
         if not isinstance(v, str):
             v = v.encode('utf-8')
         result.append((k, v))
-    return urlencode(result)
+    return parse.urlencode(result)
 
 class Alert(object):
     """
@@ -148,18 +146,18 @@ class Alert(object):
         if len(value) > QUERY_MAXLEN:
             raise ValueError('Illegal value for Alert.query (must be at most '
                 '%d characters): %r' % (QUERY_MAXLEN, value))
-        if not isinstance(value, unicode):
+        if not isinstance(value, str):
             try:
-                value = unicode(value)
+                value = str(value, 'utf-8')
             except UnicodeDecodeError:
                 raise ValueError('Illegal value for Alert.query ' \
-                    '(unicode(value) failed): %r' % value)
+                    '(str(value, \'utf-8\') failed): %r' % value)
         self._query = value
 
     query = property(_query_get, _query_set, doc="""\
         The search terms this alert will match.
 
-        :raises ValueError: if value is not ``unicode`` or ``unicode(value)``
+        :raises ValueError: if value is not ``str`` or ``str(value)``
             fails, or if its length exceeds :attr:`QUERY_MAXLEN`
         """)
 
@@ -291,8 +289,8 @@ class GAlertsManager(object):
         if '@' not in email:
             email += '@gmail.com'
         self.email = email
-        self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
-        urllib2.install_opener(self.opener)
+        self.opener = request.build_opener(request.HTTPCookieProcessor())
+        request.install_opener(self.opener)
         self._signin(password)
 
     def _signin(self, password):
@@ -314,7 +312,7 @@ class GAlertsManager(object):
         galx_value = galx_match_obj.group(1) \
             if galx_match_obj.group(1) is not None else ''
 
-        params = urlencode({
+        params = parse.urlencode({
             'Email': self.email,
             'Passwd': password,
             'service': 'alerts',
@@ -473,7 +471,7 @@ class GAlertsManager(object):
         Deletes an existing alert.
         """
         url = 'http://www.google.com/alerts/save?hl=en&gl=us'
-        params = urlencode({
+        params = parse.urlencode({
             'da': 'Delete',
             'e': self.email,
             's': alert._s,
@@ -494,28 +492,27 @@ def main():
     import sys
     TERMINAL_ENCODING = sys.stdin.encoding
 
-    print 'Google Alerts Manager\n'
+    print('Google Alerts Manager\n')
     try:
         while True:
-            email = raw_input('email: ')
+            email = input('email: ')
             password = getpass('password: ')
             try:
                 gam = GAlertsManager(email, password)
                 break
             except SignInError:
-                print '\nSign in failed, try again or hit Ctrl-C to quit\n'
+                print('\nSign in failed, try again or hit Ctrl-C to quit\n')
             except socket.error:
-                print '\nCould not connect to Google. Check your network ' \
-                    'connection and try again, or hit Ctrl-C to quit\n'
+                print('\nCould not connect to Google. Check your network '
+                    'connection and try again, or hit Ctrl-C to quit\n')
 
         def print_alerts(alerts):
-            print
-            print ' #   Query                Type           How often       Volume                    Deliver to'
-            print ' =   =====                ====           =========       ======                    =========='
+            print(' #   Query                Type           How often       Volume                    Deliver to')
+            print(' =   =====                ====           =========       ======                    ==========')
             for i, alert in enumerate(alerts):
                 query = alert.query
                 if len(query) > 20:
-                    query = query[:17] + '...'
+                    query = query[:17] + bytes('...')
                 type = alert.type
                 freq = alert.freq
                 vol = alert.vol
@@ -523,114 +520,114 @@ def main():
                 if deliver == DELIVER_FEED:
                     deliver = alert.feedurl
                 num = '%d' % i
-                print num.rjust(2), ' ', query.ljust(20), type.ljust(14), freq.ljust(15), vol.ljust(25), deliver
+                print(num.rjust(2), ' ', query.ljust(20), type.ljust(14), freq.ljust(15), vol.ljust(25), deliver)
 
         def prompt_type(default=None):
             while True:
-                print '  Alert type:'
-                print '\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
-                    ALERT_TYPES.iteritems(), key=lambda i: int(i[1])))
+                print('  Alert type:')
+                print('\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
+                    ALERT_TYPES.items(), key=lambda i: int(i[1]))))
                 if default is not None:
                     prompt = '    Choice (<Enter> for "%s"): ' % default
                 else:
                     prompt = '    Choice: '
-                type = raw_input(prompt)
-                for k, v in ALERT_TYPES.iteritems():
+                type = input(prompt)
+                for k, v in ALERT_TYPES.items():
                     if v == type:
                         return k
                 if default is not None:
                     return default
-                print '  Invalid type, try again\n'
+                print('  Invalid type, try again\n')
 
         def prompt_vol(default=None):
             while True:
-                print '  Alert volume:'
-                print '\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
-                    ALERT_VOLS.iteritems(), key=lambda i: int(i[1])))
+                print('  Alert volume:')
+                print('\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
+                    ALERT_VOLS.items(), key=lambda i: int(i[1]))))
                 if default is not None:
                     prompt = '    Choice (<Enter> for "%s"): ' % default
                 else:
                     prompt = '    Choice: '
-                vol = raw_input(prompt)
-                for k, v in ALERT_VOLS.iteritems():
+                vol = input(prompt)
+                for k, v in ALERT_VOLS.items():
                     if v == vol:
                         return k
                 if default is not None:
                     return default
-                print '  Invalid volume, try again\n'
+                print('  Invalid volume, try again\n')
 
         def prompt_alert(alerts):
             while True:
                 try:
-                    choice = int(raw_input('\n  Choice: '))
+                    choice = int(input('\n  Choice: '))
                     return alerts[choice]
                 except (ValueError, IndexError):
-                    print '  Bad input: enter a number from 0 to %d' % (len(alerts) - 1)
+                    print('  Bad input: enter a number from 0 to %d' % (len(alerts) - 1))
 
         def prompt_query(default=None):
-            if isinstance(default, unicode):
+            if isinstance(default, str):
                 default = default.encode('utf-8')
             while True:
                 if default is not None:
                     prompt = '  Query (<Enter> for "%s"): ' % default
                 else:
                     prompt = '  Query: '
-                query = raw_input(prompt)
+                query = input(prompt)
                 query = query.decode(TERMINAL_ENCODING)
                 if len(query) > QUERY_MAXLEN:
-                    print '  Query must be at most %d characters, try again\n' \
-                        % QUERY_MAXLEN
+                    print('  Query must be at most %d characters, try again\n' \
+                        % QUERY_MAXLEN)
                     continue
                 if query:
                     return query
                 if default is not None:
                     return default
-                print '  Query must be at least 1 character, try again\n'
+                print('  Query must be at least 1 character, try again\n')
 
         def prompt_deliver(current=None):
             if current is None:
-                if raw_input('  Deliver to [F]eed or [e]mail? (F/e): ') != 'e':
+                if input('  Deliver to [F]eed or [e]mail? (F/e): ') != 'e':
                     return DELIVER_FEED
                 return DELIVER_EMAIL
             if current == DELIVER_EMAIL:
-                if raw_input('  Switch to feed delivery (y/N)? ') == 'y':
+                if input('  Switch to feed delivery (y/N)? ') == 'y':
                     return DELIVER_FEED
                 return DELIVER_EMAIL
-            if raw_input('  Switch to email delivery (y/N)? ') == 'y':
+            if input('  Switch to email delivery (y/N)? ') == 'y':
                 return DELIVER_EMAIL
             return DELIVER_FEED
 
         def prompt_freq(default=None):
             while True:
-                print '  Alert frequency:'
-                print '\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
-                    ALERT_FREQS.iteritems(), key=lambda i: int(i[1])))
+                print('  Alert frequency:')
+                print('\n'.join('    %s. %s' % (v, k) for (k, v) in sorted(
+                    ALERT_FREQS.items(), key=lambda i: int(i[1]))))
                 if default is not None:
                     prompt = '    Choice (<Enter> for "%s"): ' % default
                 else:
                     prompt = '    Choice: '
-                freq = raw_input(prompt)
-                for k, v in ALERT_FREQS.iteritems():
+                freq = input(prompt)
+                for k, v in ALERT_FREQS.items():
                     if v == freq:
                         return k
                 if default is not None:
                     return default
-                print '  Invalid frequency, try again\n'
+                print('  Invalid frequency, try again\n')
 
 
         ACTIONS = ('List Alerts', 'Create Alert', 'Edit Alert', 'Delete Alert', 'Quit')
         while True:
-            print '\nActions:'
-            print '\n'.join('  %d. %s' % (i, v) for (i, v) in enumerate(ACTIONS))
-            action = raw_input('  Choice: ')
+            print('\nActions:')
+            print('\n'.join('  %d. %s' % (i, v) for (i, v) in enumerate(ACTIONS)))
+            action = input('  Choice: ')
             try:
                 action = int(action)
                 action = ACTIONS[action]
             except (ValueError, IndexError):
-                print 'Bad input: enter a number from 0 to %d\n' % (len(ACTIONS) - 1)
+                print('Bad input: enter a number from 0 to %d\n' % (len(ACTIONS) - 1))
                 continue
 
-            print '\n%s' % action
+            print('\n%s' % action)
 
             if action == 'Quit':
                 break
@@ -648,9 +645,9 @@ def main():
                 vol = prompt_vol()
                 try:
                     gam.create(query, type, feed=feed, freq=freq, vol=vol)
-                    print '\nAlert created.'
-                except UnexpectedResponseError, e:
-                    print '\nCould not create alert.'
+                    print('\nAlert created.')
+                except UnexpectedResponseError:
+                    print('\nCould not create alert.')
                     import pdb; pdb.set_trace()
 
             elif action == 'Edit Alert':
@@ -664,9 +661,9 @@ def main():
                 alert.vol = prompt_vol(default=alert.vol)
                 try:
                     gam.update(alert)
-                    print '\nAlert modified.'
-                except UnexpectedResponseError, e:
-                    print '\nCould not modify alert.'
+                    print('\nAlert modified.')
+                except UnexpectedResponseError:
+                    print('\nCould not modify alert.')
                     import pdb; pdb.set_trace()
 
             elif action == 'Delete Alert':
@@ -674,15 +671,15 @@ def main():
                 alert = prompt_alert(alerts)
                 try:
                     gam.delete(alert)
-                    print '\nAlert deleted.'
-                except UnexpectedResponseError, e:
-                    print '\nCould not delete alert.'
+                    print ('\nAlert deleted.')
+                except UnexpectedResponseError:
+                    print('\nCould not delete alert.')
                     import pdb; pdb.set_trace()
 
             else:
-                print 'code took unexpected branch... typo?'
+                print('code took unexpected branch... typo?')
     except (EOFError, KeyboardInterrupt):
-        print
+        print('EOF Error')
         return
 
 if __name__ == '__main__':
