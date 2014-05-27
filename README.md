@@ -18,7 +18,7 @@ in which case galerts will be obsolete.
 Community
 ---------
 
-galerts is `on github <http://github.com/jab/galerts>`_ and there is also a
+galerts is `on github <https://github.com/Redorb/galerts.git>`_ and there is also a
 `Google group <http://groups.google.com/group/galerts>`_ if you have any
 questions or would like to collaborate.
 
