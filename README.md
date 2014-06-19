@@ -1,7 +1,7 @@
 galerts
 =======
 
-Fork of Peter Sanchez's Python library for managing Google Alerts. Includes any fixes I find for the library not yet committed to the original branch.
+Fork of Peter Sanchez's Python library for managing Google Alerts. Includes any fixes I find for the library not yet committed to the original branch. The library has also been ported to Python 3, but needs more testing.
 
 -----
 Intro
